@@ -86,6 +86,6 @@ The app is a standard Node.js HTTP server. It can be deployed to any platform th
 | [Railway](https://railway.app) | Push to GitHub, connect repo |
 | [Render](https://render.com) | Push to GitHub, connect repo |
 | [Heroku](https://heroku.com) | `git push heroku main` |
-| Any VPS | `ts-node server.ts` (behind nginx or similar) |
+| Any VPS | `npm run build && node dist/server.js` (behind nginx or similar) |
 
 The `PORT` environment variable is respected (`process.env.PORT || 3000`), which is the convention expected by all major hosting providers.
