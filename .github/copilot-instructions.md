@@ -29,7 +29,7 @@ cupcake/
 | Task | Command |
 |------|---------|
 | First-time setup | `bash configure.sh` |
-| Build (audit check) | `bash build.sh` |
+| Build              | `bash build.sh` |
 | Start dev server  | `bash run_local.sh` |
 | Run tests         | `bash test.sh` |
 | Clean artefacts   | `bash clean.sh` |
