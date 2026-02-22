@@ -3,6 +3,7 @@
     "target": "ES2020",
     "module": "none",
     "lib": ["ES2020", "DOM"],
+    "outFile": "public/app.js",
     "strict": true,
     "skipLibCheck": true,
     "outFile": "public/app.js"

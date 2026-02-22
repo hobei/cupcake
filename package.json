@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.client.json",
-    "start": "ts-node server.ts",
+    "start": "node dist/server.js",
     "dev": "node --watch --require ts-node/register server.ts",
     "test": "jest"
   },
@@ -39,6 +39,7 @@
   },
   "jest": {
     "preset": "ts-jest",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "testPathIgnorePatterns": ["/node_modules/", "/dist/"]
   }
 }
