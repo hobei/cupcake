@@ -38,7 +38,7 @@ SQLite was chosen because:
 - **Persistent** — tasks survive server restarts.
 - **Portable** — the entire database is a single file that can be copied or deleted easily.
 
-For tests, `DB_PATH=:memory:` uses SQLite's built-in in-memory mode — no file is created and no I/O occurs. Because `jest.resetModules()` is called in `beforeEach`, each individual test gets a completely fresh, empty in-memory database.
+For tests, `DB_PATH=:memory:` uses SQLite's built-in in-memory mode
 
 ## Project Structure
 
