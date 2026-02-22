@@ -24,29 +24,21 @@ No front-end framework (React, Vue, etc.) was chosen for the initial scaffold be
 - **Simpler onboarding** — anyone can open `public/index.html` and understand it immediately.
 - **Easy to upgrade** — if a framework is needed later, the existing API and file layout remain unchanged; only the `public/` directory would be replaced.
 
-### Data Storage
+### Data Storage: SQLite
 
-Tasks can be stored in one of two backends, selected at startup via the `DB_PATH` environment variable:
-
-| Mode | How to enable | Behaviour |
-|------|---------------|-----------|
-| **In-memory** (default) | Leave `DB_PATH` unset | Data lives in a JavaScript array; reset on every restart. Good for quick trials and tests. |
-| **SQLite** | Set `DB_PATH` to a file path (e.g. `./tasks.db`) | Data is persisted to a SQLite file. Tasks survive server restarts. |
-
-The `run_local.sh` script accepts an optional argument to make the choice easy:
+Tasks are persisted in a SQLite database using `better-sqlite3`. The database file path is controlled by the `DB_PATH` environment variable (defaults to `./tasks.db`).
 
 ```bash
-bash run_local.sh            # in-memory (default)
-bash run_local.sh sqlite     # SQLite — persists to ./tasks.db
+bash run_local.sh                          # uses ./tasks.db
+DB_PATH=/path/to/myapp.db bash run_local.sh  # custom path
 ```
 
-You can also point to a custom file:
+SQLite was chosen because:
+- **Zero-config** — no separate database process to install or manage.
+- **Persistent** — tasks survive server restarts.
+- **Portable** — the entire database is a single file that can be copied or deleted easily.
 
-```bash
-DB_PATH=/path/to/myapp.db npm run dev
-```
-
-The data-access layer lives in `db.js`. Swapping the backend only requires changing how `db.js` creates the `store` object; the rest of `server.js` and the REST API are unaffected.
+For tests, `DB_PATH=:memory:` creates a fresh in-process SQLite database for each test run with no file I/O.
 
 ## Project Structure
 

@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
-# Usage:
-#   bash run_local.sh           # in-memory storage (no persistence, default)
-#   bash run_local.sh sqlite    # SQLite storage (persists to ./tasks.db)
-
-if [ "${1}" = "sqlite" ]; then
-  export DB_PATH="${DB_PATH:-./tasks.db}"
-  echo "Using SQLite storage at: ${DB_PATH}"
-fi
+# DB_PATH controls the SQLite database file (defaults to ./tasks.db).
+# Override by setting DB_PATH before calling this script, e.g.:
+#   DB_PATH=/path/to/myapp.db bash run_local.sh
+export DB_PATH="${DB_PATH:-./tasks.db}"
+echo "Using SQLite database: ${DB_PATH}"
 
 npm run dev

@@ -6,7 +6,13 @@ let app;
 
 beforeEach(() => {
   jest.resetModules();
+  process.env.DB_PATH = ':memory:';
   app = require('../server');
+});
+
+afterEach(() => {
+  require('../db').close();
+  delete process.env.DB_PATH;
 });
 
 describe('GET /api/tasks', () => {
