@@ -12,8 +12,8 @@ A simple, single-page task management app built with **Node.js**, **Express**, a
 ## Quick Start
 
 ```bash
-bash configure.sh   # install dependencies (first time)
-bash run_local.sh   # start dev server at http://localhost:3000
+bash utils/configure.sh   # install dependencies (first time)
+bash utils/run_local.sh   # start dev server at http://localhost:3000
 ```
 
 Open <http://localhost:3000> in your browser.
@@ -22,19 +22,19 @@ Open <http://localhost:3000> in your browser.
 
 | Script | Description |
 |--------|-------------|
-| `bash configure.sh` | Install npm dependencies |
-| `bash build.sh`     | Build step (placeholder for future use) |
-| `bash run_local.sh` | Run the app locally in watch mode |
-| `bash test.sh`      | Run the full test suite |
-| `bash clean.sh`     | Remove generated artefacts (`node_modules`) |
+| `bash utils/configure.sh` | Install npm dependencies |
+| `bash utils/build.sh`     | Type-check, compile, and audit dependencies |
+| `bash utils/run_local.sh` | Run the app locally in watch mode |
+| `bash utils/test.sh`      | Run the full test suite |
+| `bash utils/clean.sh`     | Remove generated artefacts (`node_modules`) |
 
 ## Running Tests
 
 ```bash
-bash test.sh
+bash utils/test.sh
 ```
 
 Tests cover the backend REST API (via [supertest](https://github.com/ladjs/supertest)) and the frontend DOM behaviour (via [jest-environment-jsdom](https://jestjs.io/docs/configuration#testenvironment-string)).
 
-See [API.md](API.md) for the REST API reference.
+See [docs/API.md](docs/API.md) for the REST API reference.
 

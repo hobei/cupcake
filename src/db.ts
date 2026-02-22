@@ -1,5 +1,5 @@
 // Data-access layer — tasks are persisted in a SQLite database.
-// DB_PATH controls the database file path (defaults to ./tasks.db).
+// DB_PATH controls the database file path (defaults to ./database/tasks.db).
 // Use DB_PATH=:memory: for an in-process SQLite database (useful in tests).
 //
 // Note: the database connection is opened at module load time using the value
@@ -8,6 +8,8 @@
 // re-requiring the module is the supported pattern for test isolation.
 
 import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
 
 export interface Task {
   id: string;
@@ -19,7 +21,14 @@ export interface Task {
 type TaskRow = Omit<Task, 'done'> & { done: number };
 type TaskChanges = Partial<Pick<Task, 'title' | 'done'>>;
 
-const sql = new Database(process.env.DB_PATH || './tasks.db');
+const DB_PATH = process.env.DB_PATH || './database/tasks.db';
+if (DB_PATH !== ':memory:') {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+const sql = new Database(DB_PATH);
 
 sql.exec(`
   CREATE TABLE IF NOT EXISTS tasks (
