@@ -36,37 +36,5 @@ bash test.sh
 
 Tests cover the backend REST API (via [supertest](https://github.com/ladjs/supertest)) and the frontend DOM behaviour (via [jest-environment-jsdom](https://jestjs.io/docs/configuration#testenvironment-string)).
 
-## Project Structure
-
-```
-cupcake/
-├── server.js        # Express server + REST API
-├── package.json     # Dependencies and npm scripts
-├── public/
-│   ├── index.html   # Single-page UI
-│   ├── style.css    # Styles
-│   └── app.js       # Browser-side logic
-├── tests/
-│   ├── server.test.js  # Backend API tests
-│   └── app.test.js     # Frontend DOM tests
-├── configure.sh     # Setup
-├── build.sh         # Build (placeholder)
-├── run_local.sh     # Local run
-├── test.sh          # Test runner
-├── clean.sh         # Cleanup
-└── DESIGN.md        # Architecture decisions
-```
-
-## API
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET    | `/api/tasks`     | List all tasks |
-| POST   | `/api/tasks`     | Create a task (`{ title }`) |
-| PUT    | `/api/tasks/:id` | Update a task (`{ title?, done? }`) |
-| DELETE | `/api/tasks/:id` | Delete a task |
-
-## CI
-
-Every push to `main` and every pull request is built and tested automatically via GitHub Actions (see `.github/workflows/ci.yml`).
+See [API.md](API.md) for the REST API reference.
 
