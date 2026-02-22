@@ -16,6 +16,8 @@ sql.exec(`
   )
 `);
 
+sql.pragma('journal_mode = WAL');
+
 const toTask = row => ({ ...row, done: row.done === 1 });
 
 module.exports = {
