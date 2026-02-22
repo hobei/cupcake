@@ -8,9 +8,13 @@
     "dev": "node --watch server.js",
     "test": "jest"
   },
-  "keywords": ["task", "management"],
+  "keywords": [
+    "task",
+    "management"
+  ],
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "express": "^4.18.2"
   },
   "devDependencies": {

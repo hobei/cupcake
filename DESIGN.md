@@ -24,13 +24,29 @@ No front-end framework (React, Vue, etc.) was chosen for the initial scaffold be
 - **Simpler onboarding** — anyone can open `public/index.html` and understand it immediately.
 - **Easy to upgrade** — if a framework is needed later, the existing API and file layout remain unchanged; only the `public/` directory would be replaced.
 
-### Data Storage: In-Memory (for now)
+### Data Storage
 
-Tasks are stored in a JavaScript array on the server for the scaffold. This means:
-- No database software to install when running locally.
-- Data is reset each time the server restarts — acceptable for a prototype.
+Tasks can be stored in one of two backends, selected at startup via the `DB_PATH` environment variable:
 
-**Upgrade path:** replace the in-memory array with a database (SQLite for local-first, PostgreSQL for production) by changing only the data-access layer in `server.js`.
+| Mode | How to enable | Behaviour |
+|------|---------------|-----------|
+| **In-memory** (default) | Leave `DB_PATH` unset | Data lives in a JavaScript array; reset on every restart. Good for quick trials and tests. |
+| **SQLite** | Set `DB_PATH` to a file path (e.g. `./tasks.db`) | Data is persisted to a SQLite file. Tasks survive server restarts. |
+
+The `run_local.sh` script accepts an optional argument to make the choice easy:
+
+```bash
+bash run_local.sh            # in-memory (default)
+bash run_local.sh sqlite     # SQLite — persists to ./tasks.db
+```
+
+You can also point to a custom file:
+
+```bash
+DB_PATH=/path/to/myapp.db npm run dev
+```
+
+The data-access layer lives in `db.js`. Swapping the backend only requires changing how `db.js` creates the `store` object; the rest of `server.js` and the REST API are unaffected.
 
 ## Project Structure
 
