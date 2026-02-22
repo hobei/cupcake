@@ -3,14 +3,21 @@
   "version": "0.1.0",
   "description": "A task management system",
   "main": "server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "jest"
   },
-  "keywords": ["task", "management"],
+  "keywords": [
+    "task",
+    "management"
+  ],
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "express": "^4.18.2"
   },
   "devDependencies": {

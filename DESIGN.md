@@ -24,13 +24,21 @@ No front-end framework (React, Vue, etc.) was chosen for the initial scaffold be
 - **Simpler onboarding** — anyone can open `public/index.html` and understand it immediately.
 - **Easy to upgrade** — if a framework is needed later, the existing API and file layout remain unchanged; only the `public/` directory would be replaced.
 
-### Data Storage: In-Memory (for now)
+### Data Storage: SQLite
 
-Tasks are stored in a JavaScript array on the server for the scaffold. This means:
-- No database software to install when running locally.
-- Data is reset each time the server restarts — acceptable for a prototype.
+Tasks are persisted in a SQLite database using `better-sqlite3`. The database file path is controlled by the `DB_PATH` environment variable (defaults to `./tasks.db`).
 
-**Upgrade path:** replace the in-memory array with a database (SQLite for local-first, PostgreSQL for production) by changing only the data-access layer in `server.js`.
+```bash
+bash run_local.sh                          # uses ./tasks.db
+DB_PATH=/path/to/myapp.db bash run_local.sh  # custom path
+```
+
+SQLite was chosen because:
+- **Zero-config** — no separate database process to install or manage.
+- **Persistent** — tasks survive server restarts.
+- **Portable** — the entire database is a single file that can be copied or deleted easily.
+
+For tests, `DB_PATH=:memory:` uses SQLite's built-in in-memory mode
 
 ## Project Structure
 
