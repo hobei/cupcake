@@ -1,10 +1,8 @@
-'use strict';
+import crypto from 'crypto';
+import express, { Request, Response } from 'express';
+import path from 'path';
 
-const crypto = require('crypto');
-const express = require('express');
-const path = require('path');
-
-const store = require('./db');
+import * as store from './db';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,13 +13,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── API ──────────────────────────────────────────────────────────────────────
 
 // List all tasks
-app.get('/api/tasks', (_req, res) => {
+app.get('/api/tasks', (_req: Request, res: Response) => {
   res.json(store.list());
 });
 
 // Create a task
-app.post('/api/tasks', (req, res) => {
-  const title = (req.body.title || '').trim();
+app.post('/api/tasks', (req: Request, res: Response) => {
+  const title = ((req.body.title as string) || '').trim();
   if (!title) {
     return res.status(400).json({ error: 'title is required' });
   }
@@ -31,15 +29,15 @@ app.post('/api/tasks', (req, res) => {
 });
 
 // Update a task (toggle done, rename)
-app.put('/api/tasks/:id', (req, res) => {
-  const id = req.params.id;
+app.put('/api/tasks/:id', (req: Request, res: Response) => {
+  const id = req.params.id as string;
   const task = store.get(id);
   if (!task) return res.status(404).json({ error: 'task not found' });
 
-  const changes = {};
-  if (typeof req.body.done === 'boolean') changes.done = req.body.done;
+  const changes: { done?: boolean; title?: string } = {};
+  if (typeof req.body.done === 'boolean') changes.done = req.body.done as boolean;
   if (typeof req.body.title === 'string') {
-    const title = req.body.title.trim();
+    const title = (req.body.title as string).trim();
     if (!title) return res.status(400).json({ error: 'title cannot be empty' });
     changes.title = title;
   }
@@ -47,8 +45,8 @@ app.put('/api/tasks/:id', (req, res) => {
 });
 
 // Delete a task
-app.delete('/api/tasks/:id', (req, res) => {
-  const id = req.params.id;
+app.delete('/api/tasks/:id', (req: Request, res: Response) => {
+  const id = req.params.id as string;
   if (!store.remove(id)) return res.status(404).json({ error: 'task not found' });
   res.status(204).send();
 });
@@ -61,4 +59,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = app;
+export = app;

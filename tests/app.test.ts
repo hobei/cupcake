@@ -1,7 +1,8 @@
 /**
  * @jest-environment jsdom
  */
-'use strict';
+
+import type { Task } from '../db';
 
 const HTML_FIXTURE = `
   <form id="add-form">
@@ -21,16 +22,16 @@ const HTML_FIXTURE = `
 `;
 
 // Flush the microtask queue so async operations driven by mocked fetch settle.
-function flushPromises() {
+function flushPromises(): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, 0));
 }
 
-function makeFetchResponse(data, status = 200) {
+function makeFetchResponse(data: Task[] | Task | Record<string, unknown>, status = 200): Promise<Response> {
   return Promise.resolve({
     ok: status >= 200 && status < 300,
     status,
     json: () => Promise.resolve(data),
-  });
+  } as unknown as Response);
 }
 
 beforeEach(() => {
@@ -42,40 +43,40 @@ describe('initial load', () => {
   test('shows empty placeholder when there are no tasks', async () => {
     global.fetch = jest.fn().mockReturnValue(makeFetchResponse([]));
 
-    require('../public/app.js');
+    require('../public/app.ts');
     await flushPromises();
 
-    const list = document.getElementById('task-list');
+    const list = document.getElementById('task-list') as HTMLUListElement;
     expect(list.querySelector('.empty')).not.toBeNull();
   });
 
   test('renders tasks returned by the API', async () => {
-    const tasks = [
+    const tasks: Task[] = [
       { id: '1', title: 'Buy milk', done: false, createdAt: '2024-01-01T00:00:00.000Z' },
       { id: '2', title: 'Walk dog', done: true,  createdAt: '2024-01-01T01:00:00.000Z' },
     ];
     global.fetch = jest.fn().mockReturnValue(makeFetchResponse(tasks));
 
-    require('../public/app.js');
+    require('../public/app.ts');
     await flushPromises();
 
     const items = document.querySelectorAll('.task-item');
     expect(items.length).toBe(2);
-    expect(items[0].querySelector('.task-title').textContent).toBe('Buy milk');
+    expect((items[0].querySelector('.task-title') as HTMLElement).textContent).toBe('Buy milk');
     expect(items[1].classList.contains('done')).toBe(true);
   });
 
   test('task count reflects active items', async () => {
-    const tasks = [
+    const tasks: Task[] = [
       { id: '1', title: 'A', done: false, createdAt: '' },
       { id: '2', title: 'B', done: true,  createdAt: '' },
     ];
     global.fetch = jest.fn().mockReturnValue(makeFetchResponse(tasks));
 
-    require('../public/app.js');
+    require('../public/app.ts');
     await flushPromises();
 
-    expect(document.getElementById('task-count').textContent).toBe('1 task left');
+    expect((document.getElementById('task-count') as HTMLElement).textContent).toBe('1 task left');
   });
 });
 
@@ -88,37 +89,37 @@ describe('form submission', () => {
 
     global.fetch = fetchMock;
 
-    require('../public/app.js');
+    require('../public/app.ts');
     await flushPromises();
 
-    document.getElementById('task-input').value = 'New task';
-    document.getElementById('add-form').dispatchEvent(new Event('submit'));
+    (document.getElementById('task-input') as HTMLInputElement).value = 'New task';
+    document.getElementById('add-form')!.dispatchEvent(new Event('submit'));
     await flushPromises();
 
     // The second fetch call should be a POST to /api/tasks
-    const [url, opts] = fetchMock.mock.calls[1];
+    const [url, opts] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(url).toBe('/api/tasks');
     expect(opts.method).toBe('POST');
-    expect(JSON.parse(opts.body).title).toBe('New task');
+    expect(JSON.parse(opts.body as string).title).toBe('New task');
   });
 });
 
 describe('filter buttons', () => {
   test('clicking the Active filter shows only incomplete tasks', async () => {
-    const tasks = [
+    const tasks: Task[] = [
       { id: '1', title: 'Active task', done: false, createdAt: '' },
       { id: '2', title: 'Done task',   done: true,  createdAt: '' },
     ];
     global.fetch = jest.fn().mockReturnValue(makeFetchResponse(tasks));
 
-    require('../public/app.js');
+    require('../public/app.ts');
     await flushPromises();
 
-    document.querySelector('[data-filter="active"]').click();
+    (document.querySelector('[data-filter="active"]') as HTMLElement).click();
     await flushPromises();
 
     const items = document.querySelectorAll('.task-item');
     expect(items.length).toBe(1);
-    expect(items[0].querySelector('.task-title').textContent).toBe('Active task');
+    expect((items[0].querySelector('.task-title') as HTMLElement).textContent).toBe('Active task');
   });
 });

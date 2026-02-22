@@ -1,8 +1,7 @@
-'use strict';
+import request from 'supertest';
+import type { Application } from 'express';
 
-const request = require('supertest');
-
-let app;
+let app: Application;
 
 beforeEach(() => {
   jest.resetModules();
@@ -53,7 +52,7 @@ describe('PUT /api/tasks/:id', () => {
     const createRes = await request(app)
       .post('/api/tasks')
       .send({ title: 'Walk the dog' });
-    const { id } = createRes.body;
+    const { id } = createRes.body as { id: string };
 
     const res = await request(app)
       .put(`/api/tasks/${id}`)
@@ -66,7 +65,7 @@ describe('PUT /api/tasks/:id', () => {
     const createRes = await request(app)
       .post('/api/tasks')
       .send({ title: 'Old title' });
-    const { id } = createRes.body;
+    const { id } = createRes.body as { id: string };
 
     const res = await request(app)
       .put(`/api/tasks/${id}`)
@@ -79,7 +78,7 @@ describe('PUT /api/tasks/:id', () => {
     const createRes = await request(app)
       .post('/api/tasks')
       .send({ title: 'Some task' });
-    const { id } = createRes.body;
+    const { id } = createRes.body as { id: string };
 
     const res = await request(app)
       .put(`/api/tasks/${id}`)
@@ -102,7 +101,7 @@ describe('DELETE /api/tasks/:id', () => {
     const createRes = await request(app)
       .post('/api/tasks')
       .send({ title: 'Delete me' });
-    const { id } = createRes.body;
+    const { id } = createRes.body as { id: string };
 
     const delRes = await request(app).delete(`/api/tasks/${id}`);
     expect(delRes.status).toBe(204);
