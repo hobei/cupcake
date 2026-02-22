@@ -1,14 +1,14 @@
 // Direct unit tests for the db.ts data-access layer.
 // Uses DB_PATH=:memory: so each test gets a fresh in-process SQLite database.
 
-import type { Task } from '../db';
+import type { Task } from '../src/db';
 
-let db: typeof import('../db');
+let db: typeof import('../src/db');
 
 beforeEach(() => {
   jest.resetModules();
   process.env.DB_PATH = ':memory:';
-  db = require('../db');
+  db = require('../src/db');
 });
 
 afterEach(() => {

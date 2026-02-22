@@ -17,14 +17,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Configure
-        run: bash configure.sh
+        run: bash utils/configure.sh
 
       - name: Build
-        run: bash build.sh
+        run: bash utils/build.sh
 
       - name: Test
-        run: bash test.sh
+        run: bash utils/test.sh

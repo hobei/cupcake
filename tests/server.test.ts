@@ -6,11 +6,11 @@ let app: Application;
 beforeEach(() => {
   jest.resetModules();
   process.env.DB_PATH = ':memory:';
-  app = require('../server');
+  app = require('../src/server');
 });
 
 afterEach(() => {
-  require('../db').close();
+  require('../src/db').close();
   delete process.env.DB_PATH;
 });
 

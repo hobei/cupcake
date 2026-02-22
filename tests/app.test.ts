@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import type { Task } from '../db';
+import type { Task } from '../src/db';
 
 const HTML_FIXTURE = `
   <form id="add-form">
