@@ -29,6 +29,7 @@ cupcake/
 | Task | Command |
 |------|---------|
 | First-time setup | `bash configure.sh` |
+| Build              | `bash build.sh` |
 | Start dev server  | `bash run_local.sh` |
 | Run tests         | `bash test.sh` |
 | Clean artefacts   | `bash clean.sh` |
@@ -40,6 +41,7 @@ cupcake/
 - Respect the `PORT` environment variable with `process.env.PORT || 3000`.
 - Use `textContent` (not `innerHTML`) when inserting user-supplied text to prevent XSS.
 - The server exports `app` via `module.exports = app` and starts listening only when run directly (`require.main === module`). This makes the server testable via supertest without starting a real HTTP listener.
+- **The build must be warning-free.** `bash build.sh` runs `npm audit --audit-level=high` and exits non-zero if any high-severity vulnerability is found. Treat every audit finding as a build error that must be resolved before merging.
 
 ## Testing
 
