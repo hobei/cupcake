@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 const taskList = document.getElementById('task-list');
 const addForm = document.getElementById('add-form');
 const taskInput = document.getElementById('task-input');

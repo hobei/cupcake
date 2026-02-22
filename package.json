@@ -2,7 +2,7 @@
   "name": "cupcake",
   "version": "0.1.0",
   "description": "A task management system",
-  "main": "server.ts",
+  "main": "dist/server.js",
   "engines": {
     "node": ">=20.0.0"
   },

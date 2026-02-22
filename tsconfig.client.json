@@ -5,8 +5,7 @@
     "lib": ["ES2020", "DOM"],
     "outFile": "public/app.js",
     "strict": true,
-    "skipLibCheck": true,
-    "outFile": "public/app.js"
+    "skipLibCheck": true
   },
   "include": ["public/app.ts"]
 }
