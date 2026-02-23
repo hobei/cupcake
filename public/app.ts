@@ -23,6 +23,30 @@ let draggedId: string | null = null;
 const dropIndicator = document.createElement('li');
 dropIndicator.className = 'drop-indicator';
 
+// The indicator itself must accept drops: without a dragover that calls
+// preventDefault() on it, the browser treats the gap as a non-drop-target
+// and never fires drop — causing the move to silently fail when the user
+// releases the mouse directly over the insertion line.
+dropIndicator.addEventListener('dragover', (e: DragEvent) => {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+});
+dropIndicator.addEventListener('drop', (e: DragEvent) => {
+  e.preventDefault();
+  dropIndicator.remove();
+  if (!draggedId) return;
+  // Determine insertion point from the indicator's current DOM position.
+  const next = dropIndicator.nextElementSibling as HTMLElement | null;
+  const prev = dropIndicator.previousElementSibling as HTMLElement | null;
+  const nextId = next?.dataset.id;
+  const prevId = prev?.dataset.id;
+  if (nextId && nextId !== draggedId) {
+    moveTask(draggedId, nextId, 'before');
+  } else if (prevId && prevId !== draggedId) {
+    moveTask(draggedId, prevId, 'after');
+  }
+});
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function apiFetch(url: string, options: RequestInit = {}): Promise<Task[] | Task | null> {
