@@ -43,6 +43,20 @@ sql.exec(`
 
 sql.pragma('journal_mode = WAL');
 
+// Schema migration: add position column to databases created before this feature.
+// PRAGMA table_info returns one row per column; if position is absent we ADD it
+// and backfill existing rows with sequential positions ordered by createdAt so
+// that the previous display order is preserved.
+const cols = sql.pragma('table_info(tasks)') as Array<{ name: string }>;
+if (!cols.some(c => c.name === 'position')) {
+  sql.exec('ALTER TABLE tasks ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+  sql.transaction(() => {
+    const rows = sql.prepare('SELECT id FROM tasks ORDER BY createdAt ASC').all() as { id: string }[];
+    const setPos = sql.prepare('UPDATE tasks SET position = ? WHERE id = ?');
+    rows.forEach((row, i) => setPos.run(i + 1, row.id));
+  })();
+}
+
 const toTask = (row: TaskRow): Task => ({ ...row, done: row.done === 1 });
 
 // Prepared statements are created once at initialisation and reused on every

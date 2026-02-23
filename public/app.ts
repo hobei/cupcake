@@ -91,13 +91,20 @@ function buildItem(task: Task): HTMLLIElement {
   li.addEventListener('dragover', (e: DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    li.classList.add('drag-over');
+    const rect = li.getBoundingClientRect();
+    const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    li.classList.remove('drop-before', 'drop-after');
+    li.classList.add(`drop-${side}`);
   });
-  li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
+  li.addEventListener('dragleave', () => li.classList.remove('drop-before', 'drop-after'));
   li.addEventListener('drop', (e: DragEvent) => {
     e.preventDefault();
-    li.classList.remove('drag-over');
-    if (draggedId && draggedId !== task.id) moveTask(draggedId, task.id);
+    li.classList.remove('drop-before', 'drop-after');
+    if (draggedId && draggedId !== task.id) {
+      const rect = li.getBoundingClientRect();
+      const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+      moveTask(draggedId, task.id, side);
+    }
   });
 
   // Checkbox
@@ -160,13 +167,14 @@ async function addTask(title: string): Promise<void> {
   await loadTasks();
 }
 
-function moveTask(fromId: string, toId: string): void {
+function moveTask(fromId: string, toId: string, side: 'before' | 'after'): void {
   const ids = allTasks.map(t => t.id);
   const fromIdx = ids.indexOf(fromId);
   const toIdx   = ids.indexOf(toId);
   if (fromIdx === -1 || toIdx === -1) return;
   ids.splice(fromIdx, 1);
-  ids.splice(toIdx, 0, fromId);
+  const newToIdx = ids.indexOf(toId); // recalculate after removal
+  ids.splice(side === 'before' ? newToIdx : newToIdx + 1, 0, fromId);
   api.reorder(ids).then(tasks => { allTasks = tasks; render(allTasks); }).catch(console.error);
 }
 

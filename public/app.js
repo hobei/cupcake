@@ -75,14 +75,18 @@ function buildItem(task) {
         e.preventDefault();
         if (e.dataTransfer)
             e.dataTransfer.dropEffect = 'move';
-        li.classList.add('drag-over');
+        const rect = li.getBoundingClientRect();
+        const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+        li.classList.remove('drop-before', 'drop-after');
+        li.classList.add(`drop-${side}`);
     });
-    li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
+    li.addEventListener('dragleave', () => li.classList.remove('drop-before', 'drop-after'));
     li.addEventListener('drop', (e) => {
         e.preventDefault();
-        li.classList.remove('drag-over');
+        const side = li.classList.contains('drop-before') ? 'before' : 'after';
+        li.classList.remove('drop-before', 'drop-after');
         if (draggedId && draggedId !== task.id)
-            moveTask(draggedId, task.id);
+            moveTask(draggedId, task.id, side);
     });
     // Checkbox
     const cb = document.createElement('input');
@@ -138,14 +142,15 @@ async function addTask(title) {
     await api.create(title);
     await loadTasks();
 }
-function moveTask(fromId, toId) {
+function moveTask(fromId, toId, side) {
     const ids = allTasks.map(t => t.id);
     const fromIdx = ids.indexOf(fromId);
     const toIdx = ids.indexOf(toId);
     if (fromIdx === -1 || toIdx === -1)
         return;
     ids.splice(fromIdx, 1);
-    ids.splice(toIdx, 0, fromId);
+    const newToIdx = ids.indexOf(toId); // recalculate after removal
+    ids.splice(side === 'before' ? newToIdx : newToIdx + 1, 0, fromId);
     api.reorder(ids).then(tasks => { allTasks = tasks; render(allTasks); }).catch(console.error);
 }
 async function toggleDone(id, done) {

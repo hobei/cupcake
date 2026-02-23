@@ -104,6 +104,7 @@ button[type="submit"]:hover { background: var(--brand-dark); }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   transition: opacity .2s;
+  position: relative;
 }
 .task-item.done { opacity: .55; }
 
@@ -173,8 +174,21 @@ footer.hidden { display: none; }
   user-select: none;
 }
 
-.task-item.dragging  { opacity: 0.35; cursor: grabbing; }
-.task-item.drag-over { outline: 2px dashed var(--brand); outline-offset: -2px; }
+.task-item.dragging { opacity: 0.35; cursor: grabbing; }
+
+/* Insertion-point line shown between items while dragging */
+.task-item.drop-before::before,
+.task-item.drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--brand);
+  border-radius: 2px;
+}
+.task-item.drop-before::before { top: -4px; }
+.task-item.drop-after::after   { bottom: -4px; }
 
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty {

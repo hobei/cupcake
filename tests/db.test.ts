@@ -1,6 +1,10 @@
 // Direct unit tests for the db.ts data-access layer.
 // Uses DB_PATH=:memory: so each test gets a fresh in-process SQLite database.
 
+import Database from 'better-sqlite3';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import type { Task } from '../src/db';
 
 let db: typeof import('../src/db');
@@ -107,5 +111,43 @@ describe('reorder', () => {
     db.reorder(['c', 'a', 'b']);
     const tasks = db.list();
     expect(tasks.map(t => t.id)).toEqual(['c', 'a', 'b']);
+  });
+});
+
+describe('schema migration', () => {
+  test('adds position column and backfills rows in createdAt order', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cupcake-'));
+    const tmpDb  = path.join(tmpDir, 'test.db');
+
+    // Create an old-schema database (no position column)
+    const oldSql = new Database(tmpDb);
+    oldSql.exec(`
+      CREATE TABLE tasks (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        done INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    `);
+    oldSql.prepare('INSERT INTO tasks VALUES (?,?,?,?)').run('a', 'Alpha', 0, '2024-01-01T00:00:00.000Z');
+    oldSql.prepare('INSERT INTO tasks VALUES (?,?,?,?)').run('b', 'Beta',  0, '2024-01-02T00:00:00.000Z');
+    oldSql.close();
+
+    // Load db.ts against the old database — migration should run automatically
+    jest.resetModules();
+    process.env.DB_PATH = tmpDb;
+    const migratedDb = require('../src/db') as typeof import('../src/db');
+
+    const tasks = migratedDb.list();
+    expect(tasks[0]).toMatchObject({ id: 'a', position: 1 });
+    expect(tasks[1]).toMatchObject({ id: 'b', position: 2 });
+
+    migratedDb.close();
+    fs.rmSync(tmpDir, { recursive: true });
+
+    // Restore state expected by afterEach
+    jest.resetModules();
+    process.env.DB_PATH = ':memory:';
+    db = require('../src/db');
   });
 });
