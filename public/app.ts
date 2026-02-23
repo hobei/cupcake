@@ -3,6 +3,7 @@ interface Task {
   title: string;
   done: boolean;
   createdAt: string;
+  position: number;
 }
 
 type TaskPatch = Partial<Pick<Task, 'title' | 'done'>>;
@@ -15,6 +16,41 @@ const taskFooter = document.getElementById('task-footer') as HTMLElement;
 const clearDone  = document.getElementById('clear-done') as HTMLButtonElement;
 
 let currentFilter: 'all' | 'active' | 'done' = 'all';
+let allTasks: Task[] = [];
+let draggedId: string | null = null;
+
+// Single shared element used as the drag insertion indicator.
+const dropIndicator = document.createElement('li');
+dropIndicator.className = 'drop-indicator';
+
+// The indicator itself must accept drops: without a dragover that calls
+// preventDefault() on it, the browser treats the gap as a non-drop-target
+// and never fires drop — causing the move to silently fail when the user
+// releases the mouse directly over the insertion line.
+dropIndicator.addEventListener('dragover', (e: DragEvent) => {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+});
+dropIndicator.addEventListener('drop', (e: DragEvent) => {
+  e.preventDefault();
+  // Read siblings BEFORE removing from the DOM — once detached, both return null.
+  const next = dropIndicator.nextElementSibling as HTMLElement | null;
+  const prev = dropIndicator.previousElementSibling as HTMLElement | null;
+  dropIndicator.remove();
+  console.log('[DnD] drop on indicator — draggedId:', draggedId, '| next:', next?.dataset.id ?? 'none', '| prev:', prev?.dataset.id ?? 'none');
+  if (!draggedId) return;
+  const nextId = next?.dataset.id;
+  const prevId = prev?.dataset.id;
+  if (nextId && nextId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'before', nextId);
+    moveTask(draggedId, nextId, 'before');
+  } else if (prevId && prevId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'after', prevId);
+    moveTask(draggedId, prevId, 'after');
+  } else {
+    console.log('[DnD] → no move (same item or no valid neighbour)');
+  }
+});
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -32,10 +68,11 @@ async function apiFetch(url: string, options: RequestInit = {}): Promise<Task[] 
 }
 
 const api = {
-  list:   (): Promise<Task[]>                   => apiFetch('/api/tasks') as Promise<Task[]>,
-  create: (title: string): Promise<Task>        => apiFetch('/api/tasks', { method: 'POST',   body: JSON.stringify({ title }) }) as Promise<Task>,
-  update: (id: string, patch: TaskPatch): Promise<Task> => apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(patch) }) as Promise<Task>,
-  remove: (id: string): Promise<null>           => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }) as Promise<null>,
+  list:    (): Promise<Task[]>                         => apiFetch('/api/tasks') as Promise<Task[]>,
+  create:  (title: string): Promise<Task>              => apiFetch('/api/tasks', { method: 'POST',   body: JSON.stringify({ title }) }) as Promise<Task>,
+  update:  (id: string, patch: TaskPatch): Promise<Task> => apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(patch) }) as Promise<Task>,
+  remove:  (id: string): Promise<null>                 => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }) as Promise<null>,
+  reorder: (ids: string[]): Promise<Task[]>            => apiFetch('/api/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }) as Promise<Task[]>,
 };
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -66,6 +103,57 @@ function buildItem(task: Task): HTMLLIElement {
   const li = document.createElement('li');
   li.className = `task-item${task.done ? ' done' : ''}`;
   li.dataset.id = task.id;
+  li.draggable = true;
+
+  // Drag handle
+  const handle = document.createElement('span');
+  handle.className = 'drag-handle';
+  handle.textContent = '⠿';
+  handle.setAttribute('aria-hidden', 'true');
+
+  // Drag-and-drop events
+  li.addEventListener('dragstart', (e: DragEvent) => {
+    draggedId = task.id;
+    li.classList.add('dragging');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    console.log('[DnD] dragstart — task:', task.title, '| id:', task.id);
+  });
+  li.addEventListener('dragend', () => {
+    dropIndicator.remove();
+    li.classList.remove('dragging');
+    console.log('[DnD] dragend — draggedId cleared');
+    draggedId = null;
+  });
+  li.addEventListener('dragover', (e: DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    const rect = li.getBoundingClientRect();
+    const half = rect.top + rect.height / 2;
+    if (e.clientY < half) {
+      if (dropIndicator.nextElementSibling !== li) {
+        taskList.insertBefore(dropIndicator, li);
+        console.log('[DnD] indicator → before', task.title);
+      }
+    } else {
+      if (dropIndicator.previousElementSibling !== li) {
+        taskList.insertBefore(dropIndicator, li.nextElementSibling);
+        console.log('[DnD] indicator → after', task.title);
+      }
+    }
+  });
+  li.addEventListener('drop', (e: DragEvent) => {
+    e.preventDefault();
+    dropIndicator.remove();
+    const rect = li.getBoundingClientRect();
+    const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    console.log('[DnD] drop on task:', task.title, '| side:', side, '| draggedId:', draggedId);
+    if (draggedId && draggedId !== task.id) {
+      console.log('[DnD] → moveTask', draggedId, side, task.id);
+      moveTask(draggedId, task.id, side);
+    } else {
+      console.log('[DnD] → no move (same item or no active drag)');
+    }
+  });
 
   // Checkbox
   const cb = document.createElement('input');
@@ -86,7 +174,7 @@ function buildItem(task: Task): HTMLLIElement {
   del.setAttribute('aria-label', 'Delete task');
   del.addEventListener('click', () => deleteTask(task.id));
 
-  li.append(cb, span, del);
+  li.append(handle, cb, span, del);
   return li;
 }
 
@@ -118,13 +206,29 @@ function startEdit(task: Task, li: HTMLLIElement, span: HTMLSpanElement): void {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 async function loadTasks(): Promise<void> {
-  const tasks = await api.list();
-  render(tasks);
+  allTasks = await api.list();
+  render(allTasks);
 }
 
 async function addTask(title: string): Promise<void> {
   await api.create(title);
   await loadTasks();
+}
+
+function moveTask(fromId: string, toId: string, side: 'before' | 'after'): void {
+  const ids = allTasks.map(t => t.id);
+  const fromIdx = ids.indexOf(fromId);
+  const toIdx   = ids.indexOf(toId);
+  console.log('[DnD] moveTask — from:', fromId, '(idx', fromIdx, ') |', side, toId, '(idx', toIdx, ') | order before:', ids.join(','));
+  if (fromIdx === -1 || toIdx === -1) {
+    console.log('[DnD] moveTask aborted — id not found in allTasks');
+    return;
+  }
+  ids.splice(fromIdx, 1);
+  const newToIdx = ids.indexOf(toId); // recalculate after removal
+  ids.splice(side === 'before' ? newToIdx : newToIdx + 1, 0, fromId);
+  console.log('[DnD] moveTask — order after:', ids.join(','));
+  api.reorder(ids).then(tasks => { allTasks = tasks; render(allTasks); }).catch(console.error);
 }
 
 async function toggleDone(id: string, done: boolean): Promise<void> {
@@ -144,6 +248,42 @@ async function clearCompleted(): Promise<void> {
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
+
+// Make the list container itself a valid drop target so that drops landing
+// in the flex gap between items (which belongs to the <ul>, not any <li>)
+// are not silently discarded by the browser.
+taskList.addEventListener('dragover', (e: DragEvent) => {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+});
+taskList.addEventListener('drop', (e: DragEvent) => {
+  // Only handle drops that landed directly on the <ul> (i.e. in the gap).
+  // Drops on <li> items bubble here too but are already handled by their
+  // own listeners; let those through without double-processing.
+  if (e.target !== taskList) return;
+  e.preventDefault();
+  const next = dropIndicator.nextElementSibling as HTMLElement | null;
+  const prev = dropIndicator.previousElementSibling as HTMLElement | null;
+  dropIndicator.remove();
+  console.log('[DnD] drop on list gap — draggedId:', draggedId, '| next:', next?.dataset.id ?? 'none', '| prev:', prev?.dataset.id ?? 'none');
+  if (!draggedId) return;
+  const nextId = next?.dataset.id;
+  const prevId = prev?.dataset.id;
+  if (nextId && nextId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'before', nextId);
+    moveTask(draggedId, nextId, 'before');
+  } else if (prevId && prevId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'after', prevId);
+    moveTask(draggedId, prevId, 'after');
+  } else {
+    console.log('[DnD] → no move (no valid neighbour)');
+  }
+});
+
+// Hide the drop indicator when the cursor leaves the task list entirely.
+taskList.addEventListener('dragleave', (e: DragEvent) => {
+  if (!e.relatedTarget || !taskList.contains(e.relatedTarget as Node)) dropIndicator.remove();
+});
 
 addForm.addEventListener('submit', (e: Event) => {
   e.preventDefault();

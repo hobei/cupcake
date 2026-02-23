@@ -16,6 +16,7 @@ export interface Task {
   title: string;
   done: boolean;
   createdAt: string;
+  position: number;
 }
 
 type TaskRow = Omit<Task, 'done'> & { done: number };
@@ -35,22 +36,39 @@ sql.exec(`
     id        TEXT PRIMARY KEY,
     title     TEXT NOT NULL,
     done      INTEGER NOT NULL DEFAULT 0,
-    createdAt TEXT NOT NULL
+    createdAt TEXT NOT NULL,
+    position  INTEGER NOT NULL DEFAULT 0
   )
 `);
 
 sql.pragma('journal_mode = WAL');
+
+// Schema migration: add position column to databases created before this feature.
+// PRAGMA table_info returns one row per column; if position is absent we ADD it
+// and backfill existing rows with sequential positions ordered by createdAt so
+// that the previous display order is preserved.
+const cols = sql.pragma('table_info(tasks)') as Array<{ name: string }>;
+if (!cols.some(c => c.name === 'position')) {
+  sql.exec('ALTER TABLE tasks ADD COLUMN position INTEGER NOT NULL DEFAULT 0');
+  sql.transaction(() => {
+    const rows = sql.prepare('SELECT id FROM tasks ORDER BY createdAt ASC').all() as { id: string }[];
+    const setPos = sql.prepare('UPDATE tasks SET position = ? WHERE id = ?');
+    rows.forEach((row, i) => setPos.run(i + 1, row.id));
+  })();
+}
 
 const toTask = (row: TaskRow): Task => ({ ...row, done: row.done === 1 });
 
 // Prepared statements are created once at initialisation and reused on every
 // call, which is the recommended pattern for better-sqlite3.
 const stmts = {
-  list:   sql.prepare('SELECT * FROM tasks ORDER BY createdAt ASC'),
-  get:    sql.prepare('SELECT * FROM tasks WHERE id = ?'),
-  insert: sql.prepare('INSERT INTO tasks (id, title, done, createdAt) VALUES (?, ?, ?, ?)'),
-  update: sql.prepare('UPDATE tasks SET title = ?, done = ? WHERE id = ?'),
-  delete: sql.prepare('DELETE FROM tasks WHERE id = ?'),
+  list:      sql.prepare('SELECT * FROM tasks ORDER BY position ASC'),
+  get:       sql.prepare('SELECT * FROM tasks WHERE id = ?'),
+  insert:    sql.prepare('INSERT INTO tasks (id, title, done, createdAt, position) VALUES (?, ?, ?, ?, ?)'),
+  update:    sql.prepare('UPDATE tasks SET title = ?, done = ? WHERE id = ?'),
+  updatePos: sql.prepare('UPDATE tasks SET position = ? WHERE id = ?'),
+  maxPos:    sql.prepare('SELECT COALESCE(MAX(position), 0) AS maxPos FROM tasks'),
+  delete:    sql.prepare('DELETE FROM tasks WHERE id = ?'),
 };
 
 export function list(): Task[] {
@@ -72,7 +90,7 @@ export function get(id: string): Task | undefined {
 
 export function add(task: Task): Task {
   try {
-    stmts.insert.run(task.id, task.title, task.done ? 1 : 0, task.createdAt);
+    stmts.insert.run(task.id, task.title, task.done ? 1 : 0, task.createdAt, task.position);
     return task;
   } catch (err) {
     throw new Error(`db.add failed: ${(err as Error).message}`);
@@ -97,6 +115,27 @@ export function remove(id: string): boolean {
     return result.changes > 0;
   } catch (err) {
     throw new Error(`db.remove failed: ${(err as Error).message}`);
+  }
+}
+
+export function nextPosition(): number {
+  try {
+    return (stmts.maxPos.get() as { maxPos: number }).maxPos + 1;
+  } catch (err) {
+    throw new Error(`db.nextPosition failed: ${(err as Error).message}`);
+  }
+}
+
+export function reorder(ids: string[]): void {
+  const reorderTx = sql.transaction(() => {
+    ids.forEach((id, idx) => {
+      stmts.updatePos.run(idx + 1, id);
+    });
+  });
+  try {
+    reorderTx();
+  } catch (err) {
+    throw new Error(`db.reorder failed: ${(err as Error).message}`);
   }
 }
 

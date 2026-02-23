@@ -164,6 +164,26 @@ footer.hidden { display: none; }
 }
 #clear-done:hover { color: var(--brand-dark); }
 
+/* ── Drag-and-drop ─────────────────────────────────────────────────────────── */
+.drag-handle {
+  color: var(--muted);
+  font-size: 1rem;
+  flex-shrink: 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.task-item.dragging { opacity: 0.35; cursor: grabbing; }
+
+/* Single shared insertion-point indicator inserted between list items */
+.drop-indicator {
+  height: 0;
+  border-top: 3px solid var(--brand);
+  border-radius: 2px;
+  list-style: none;
+  padding: 0;
+}
+
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty {
   text-align: center;

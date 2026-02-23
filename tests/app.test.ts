@@ -52,8 +52,8 @@ describe('initial load', () => {
 
   test('renders tasks returned by the API', async () => {
     const tasks: Task[] = [
-      { id: '1', title: 'Buy milk', done: false, createdAt: '2024-01-01T00:00:00.000Z' },
-      { id: '2', title: 'Walk dog', done: true,  createdAt: '2024-01-01T01:00:00.000Z' },
+      { id: '1', title: 'Buy milk', done: false, createdAt: '2024-01-01T00:00:00.000Z', position: 1 },
+      { id: '2', title: 'Walk dog', done: true,  createdAt: '2024-01-01T01:00:00.000Z', position: 2 },
     ];
     global.fetch = jest.fn().mockReturnValue(makeFetchResponse(tasks));
 
@@ -68,8 +68,8 @@ describe('initial load', () => {
 
   test('task count reflects active items', async () => {
     const tasks: Task[] = [
-      { id: '1', title: 'A', done: false, createdAt: '' },
-      { id: '2', title: 'B', done: true,  createdAt: '' },
+      { id: '1', title: 'A', done: false, createdAt: '', position: 1 },
+      { id: '2', title: 'B', done: true,  createdAt: '', position: 2 },
     ];
     global.fetch = jest.fn().mockReturnValue(makeFetchResponse(tasks));
 
@@ -78,14 +78,28 @@ describe('initial load', () => {
 
     expect((document.getElementById('task-count') as HTMLElement).textContent).toBe('1 task left');
   });
+
+  test('task items are draggable and show a drag handle', async () => {
+    const tasks: Task[] = [
+      { id: '1', title: 'Drag me', done: false, createdAt: '', position: 1 },
+    ];
+    global.fetch = jest.fn().mockReturnValue(makeFetchResponse(tasks));
+
+    require('../public/app.ts');
+    await flushPromises();
+
+    const item = document.querySelector('.task-item') as HTMLLIElement;
+    expect(item.draggable).toBe(true);
+    expect(item.querySelector('.drag-handle')).not.toBeNull();
+  });
 });
 
 describe('form submission', () => {
   test('submitting the form calls the create API', async () => {
     const fetchMock = jest.fn()
       .mockReturnValueOnce(makeFetchResponse([]))                             // initial load
-      .mockReturnValueOnce(makeFetchResponse({ id: '3', title: 'New task', done: false, createdAt: '' }, 201)) // create
-      .mockReturnValueOnce(makeFetchResponse([{ id: '3', title: 'New task', done: false, createdAt: '' }]));   // reload
+      .mockReturnValueOnce(makeFetchResponse({ id: '3', title: 'New task', done: false, createdAt: '', position: 1 }, 201)) // create
+      .mockReturnValueOnce(makeFetchResponse([{ id: '3', title: 'New task', done: false, createdAt: '', position: 1 }]));   // reload
 
     global.fetch = fetchMock;
 
@@ -107,8 +121,8 @@ describe('form submission', () => {
 describe('filter buttons', () => {
   test('clicking the Active filter shows only incomplete tasks', async () => {
     const tasks: Task[] = [
-      { id: '1', title: 'Active task', done: false, createdAt: '' },
-      { id: '2', title: 'Done task',   done: true,  createdAt: '' },
+      { id: '1', title: 'Active task', done: false, createdAt: '', position: 1 },
+      { id: '2', title: 'Done task',   done: true,  createdAt: '', position: 2 },
     ];
     global.fetch = jest.fn().mockReturnValue(makeFetchResponse(tasks));
 
