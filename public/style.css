@@ -104,7 +104,6 @@ button[type="submit"]:hover { background: var(--brand-dark); }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   transition: opacity .2s;
-  position: relative;
 }
 .task-item.done { opacity: .55; }
 
@@ -176,19 +175,15 @@ footer.hidden { display: none; }
 
 .task-item.dragging { opacity: 0.35; cursor: grabbing; }
 
-/* Insertion-point line shown between items while dragging */
-.task-item.drop-before::before,
-.task-item.drop-after::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--brand);
+/* Single shared insertion-point indicator inserted between list items */
+.drop-indicator {
+  height: 0;
+  border-top: 3px solid var(--brand);
   border-radius: 2px;
+  list-style: none;
+  padding: 0;
+  pointer-events: none;
 }
-.task-item.drop-before::before { top: -4px; }
-.task-item.drop-after::after   { bottom: -4px; }
 
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty {

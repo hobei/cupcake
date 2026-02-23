@@ -8,6 +8,9 @@ const clearDone = document.getElementById('clear-done');
 let currentFilter = 'all';
 let allTasks = [];
 let draggedId = null;
+// Single shared element used as the drag insertion indicator.
+const dropIndicator = document.createElement('li');
+dropIndicator.className = 'drop-indicator';
 // ── API helpers ───────────────────────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
     const res = await fetch(url, {
@@ -68,6 +71,7 @@ function buildItem(task) {
             e.dataTransfer.effectAllowed = 'move';
     });
     li.addEventListener('dragend', () => {
+        dropIndicator.remove();
         li.classList.remove('dragging');
         draggedId = null;
     });
@@ -76,17 +80,21 @@ function buildItem(task) {
         if (e.dataTransfer)
             e.dataTransfer.dropEffect = 'move';
         const rect = li.getBoundingClientRect();
-        const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
-        li.classList.remove('drop-before', 'drop-after');
-        li.classList.add(`drop-${side}`);
+        if (e.clientY < rect.top + rect.height / 2) {
+            taskList.insertBefore(dropIndicator, li);
+        }
+        else {
+            taskList.insertBefore(dropIndicator, li.nextElementSibling);
+        }
     });
-    li.addEventListener('dragleave', () => li.classList.remove('drop-before', 'drop-after'));
     li.addEventListener('drop', (e) => {
         e.preventDefault();
-        const side = li.classList.contains('drop-before') ? 'before' : 'after';
-        li.classList.remove('drop-before', 'drop-after');
-        if (draggedId && draggedId !== task.id)
+        dropIndicator.remove();
+        if (draggedId && draggedId !== task.id) {
+            const rect = li.getBoundingClientRect();
+            const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
             moveTask(draggedId, task.id, side);
+        }
     });
     // Checkbox
     const cb = document.createElement('input');
@@ -167,6 +175,11 @@ async function clearCompleted() {
     await loadTasks();
 }
 // ── Event listeners ───────────────────────────────────────────────────────────
+// Hide the drop indicator when the cursor leaves the task list entirely.
+taskList.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget || !taskList.contains(e.relatedTarget))
+        dropIndicator.remove();
+});
 addForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = taskInput.value.trim();

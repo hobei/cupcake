@@ -19,6 +19,10 @@ let currentFilter: 'all' | 'active' | 'done' = 'all';
 let allTasks: Task[] = [];
 let draggedId: string | null = null;
 
+// Single shared element used as the drag insertion indicator.
+const dropIndicator = document.createElement('li');
+dropIndicator.className = 'drop-indicator';
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function apiFetch(url: string, options: RequestInit = {}): Promise<Task[] | Task | null> {
@@ -85,6 +89,7 @@ function buildItem(task: Task): HTMLLIElement {
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
   });
   li.addEventListener('dragend', () => {
+    dropIndicator.remove();
     li.classList.remove('dragging');
     draggedId = null;
   });
@@ -92,14 +97,15 @@ function buildItem(task: Task): HTMLLIElement {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
     const rect = li.getBoundingClientRect();
-    const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
-    li.classList.remove('drop-before', 'drop-after');
-    li.classList.add(`drop-${side}`);
+    if (e.clientY < rect.top + rect.height / 2) {
+      taskList.insertBefore(dropIndicator, li);
+    } else {
+      taskList.insertBefore(dropIndicator, li.nextElementSibling);
+    }
   });
-  li.addEventListener('dragleave', () => li.classList.remove('drop-before', 'drop-after'));
   li.addEventListener('drop', (e: DragEvent) => {
     e.preventDefault();
-    li.classList.remove('drop-before', 'drop-after');
+    dropIndicator.remove();
     if (draggedId && draggedId !== task.id) {
       const rect = li.getBoundingClientRect();
       const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
@@ -195,6 +201,11 @@ async function clearCompleted(): Promise<void> {
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
+
+// Hide the drop indicator when the cursor leaves the task list entirely.
+taskList.addEventListener('dragleave', (e: DragEvent) => {
+  if (!e.relatedTarget || !taskList.contains(e.relatedTarget as Node)) dropIndicator.remove();
+});
 
 addForm.addEventListener('submit', (e: Event) => {
   e.preventDefault();
