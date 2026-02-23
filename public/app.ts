@@ -122,9 +122,9 @@ function buildItem(task: Task): HTMLLIElement {
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
     const rect = li.getBoundingClientRect();
     if (e.clientY < rect.top + rect.height / 2) {
-      taskList.insertBefore(dropIndicator, li);
+      if (dropIndicator.nextElementSibling !== li) taskList.insertBefore(dropIndicator, li);
     } else {
-      taskList.insertBefore(dropIndicator, li.nextElementSibling);
+      if (dropIndicator.previousElementSibling !== li) taskList.insertBefore(dropIndicator, li.nextElementSibling);
     }
   });
   li.addEventListener('drop', (e: DragEvent) => {
