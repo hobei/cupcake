@@ -33,17 +33,22 @@ dropIndicator.addEventListener('dragover', (e: DragEvent) => {
 });
 dropIndicator.addEventListener('drop', (e: DragEvent) => {
   e.preventDefault();
-  dropIndicator.remove();
-  if (!draggedId) return;
-  // Determine insertion point from the indicator's current DOM position.
+  // Read siblings BEFORE removing from the DOM — once detached, both return null.
   const next = dropIndicator.nextElementSibling as HTMLElement | null;
   const prev = dropIndicator.previousElementSibling as HTMLElement | null;
+  dropIndicator.remove();
+  console.log('[DnD] drop on indicator — draggedId:', draggedId, '| next:', next?.dataset.id ?? 'none', '| prev:', prev?.dataset.id ?? 'none');
+  if (!draggedId) return;
   const nextId = next?.dataset.id;
   const prevId = prev?.dataset.id;
   if (nextId && nextId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'before', nextId);
     moveTask(draggedId, nextId, 'before');
   } else if (prevId && prevId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'after', prevId);
     moveTask(draggedId, prevId, 'after');
+  } else {
+    console.log('[DnD] → no move (same item or no valid neighbour)');
   }
 });
 
@@ -111,29 +116,42 @@ function buildItem(task: Task): HTMLLIElement {
     draggedId = task.id;
     li.classList.add('dragging');
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    console.log('[DnD] dragstart — task:', task.title, '| id:', task.id);
   });
   li.addEventListener('dragend', () => {
     dropIndicator.remove();
     li.classList.remove('dragging');
+    console.log('[DnD] dragend — draggedId cleared');
     draggedId = null;
   });
   li.addEventListener('dragover', (e: DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
     const rect = li.getBoundingClientRect();
-    if (e.clientY < rect.top + rect.height / 2) {
-      if (dropIndicator.nextElementSibling !== li) taskList.insertBefore(dropIndicator, li);
+    const half = rect.top + rect.height / 2;
+    if (e.clientY < half) {
+      if (dropIndicator.nextElementSibling !== li) {
+        taskList.insertBefore(dropIndicator, li);
+        console.log('[DnD] indicator → before', task.title);
+      }
     } else {
-      if (dropIndicator.previousElementSibling !== li) taskList.insertBefore(dropIndicator, li.nextElementSibling);
+      if (dropIndicator.previousElementSibling !== li) {
+        taskList.insertBefore(dropIndicator, li.nextElementSibling);
+        console.log('[DnD] indicator → after', task.title);
+      }
     }
   });
   li.addEventListener('drop', (e: DragEvent) => {
     e.preventDefault();
     dropIndicator.remove();
+    const rect = li.getBoundingClientRect();
+    const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    console.log('[DnD] drop on task:', task.title, '| side:', side, '| draggedId:', draggedId);
     if (draggedId && draggedId !== task.id) {
-      const rect = li.getBoundingClientRect();
-      const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+      console.log('[DnD] → moveTask', draggedId, side, task.id);
       moveTask(draggedId, task.id, side);
+    } else {
+      console.log('[DnD] → no move (same item or no active drag)');
     }
   });
 
@@ -201,10 +219,15 @@ function moveTask(fromId: string, toId: string, side: 'before' | 'after'): void 
   const ids = allTasks.map(t => t.id);
   const fromIdx = ids.indexOf(fromId);
   const toIdx   = ids.indexOf(toId);
-  if (fromIdx === -1 || toIdx === -1) return;
+  console.log('[DnD] moveTask — from:', fromId, '(idx', fromIdx, ') |', side, toId, '(idx', toIdx, ') | order before:', ids.join(','));
+  if (fromIdx === -1 || toIdx === -1) {
+    console.log('[DnD] moveTask aborted — id not found in allTasks');
+    return;
+  }
   ids.splice(fromIdx, 1);
   const newToIdx = ids.indexOf(toId); // recalculate after removal
   ids.splice(side === 'before' ? newToIdx : newToIdx + 1, 0, fromId);
+  console.log('[DnD] moveTask — order after:', ids.join(','));
   api.reorder(ids).then(tasks => { allTasks = tasks; render(allTasks); }).catch(console.error);
 }
 
