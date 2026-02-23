@@ -249,6 +249,37 @@ async function clearCompleted(): Promise<void> {
 
 // ── Event listeners ───────────────────────────────────────────────────────────
 
+// Make the list container itself a valid drop target so that drops landing
+// in the flex gap between items (which belongs to the <ul>, not any <li>)
+// are not silently discarded by the browser.
+taskList.addEventListener('dragover', (e: DragEvent) => {
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+});
+taskList.addEventListener('drop', (e: DragEvent) => {
+  // Only handle drops that landed directly on the <ul> (i.e. in the gap).
+  // Drops on <li> items bubble here too but are already handled by their
+  // own listeners; let those through without double-processing.
+  if (e.target !== taskList) return;
+  e.preventDefault();
+  const next = dropIndicator.nextElementSibling as HTMLElement | null;
+  const prev = dropIndicator.previousElementSibling as HTMLElement | null;
+  dropIndicator.remove();
+  console.log('[DnD] drop on list gap — draggedId:', draggedId, '| next:', next?.dataset.id ?? 'none', '| prev:', prev?.dataset.id ?? 'none');
+  if (!draggedId) return;
+  const nextId = next?.dataset.id;
+  const prevId = prev?.dataset.id;
+  if (nextId && nextId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'before', nextId);
+    moveTask(draggedId, nextId, 'before');
+  } else if (prevId && prevId !== draggedId) {
+    console.log('[DnD] → moveTask', draggedId, 'after', prevId);
+    moveTask(draggedId, prevId, 'after');
+  } else {
+    console.log('[DnD] → no move (no valid neighbour)');
+  }
+});
+
 // Hide the drop indicator when the cursor leaves the task list entirely.
 taskList.addEventListener('dragleave', (e: DragEvent) => {
   if (!e.relatedTarget || !taskList.contains(e.relatedTarget as Node)) dropIndicator.remove();
