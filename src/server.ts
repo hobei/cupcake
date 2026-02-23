@@ -23,9 +23,19 @@ app.post('/api/tasks', (req: Request, res: Response) => {
   if (!title) {
     return res.status(400).json({ error: 'title is required' });
   }
-  const task = { id: crypto.randomUUID(), title, done: false, createdAt: new Date().toISOString() };
+  const task = { id: crypto.randomUUID(), title, done: false, createdAt: new Date().toISOString(), position: store.nextPosition() };
   store.add(task);
   res.status(201).json(task);
+});
+
+// Reorder tasks — body: { ids: string[] } in the desired order
+app.put('/api/tasks/reorder', (req: Request, res: Response) => {
+  const ids = req.body.ids as unknown;
+  if (!Array.isArray(ids) || !(ids as unknown[]).every((id): id is string => typeof id === 'string')) {
+    return res.status(400).json({ error: 'ids must be an array of strings' });
+  }
+  store.reorder(ids as string[]);
+  res.json(store.list());
 });
 
 // Update a task (toggle done, rename)

@@ -6,6 +6,8 @@ const taskCount = document.getElementById('task-count');
 const taskFooter = document.getElementById('task-footer');
 const clearDone = document.getElementById('clear-done');
 let currentFilter = 'all';
+let allTasks = [];
+let draggedId = null;
 // ── API helpers ───────────────────────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
     const res = await fetch(url, {
@@ -25,6 +27,7 @@ const api = {
     create: (title) => apiFetch('/api/tasks', { method: 'POST', body: JSON.stringify({ title }) }),
     update: (id, patch) => apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
     remove: (id) => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }),
+    reorder: (ids) => apiFetch('/api/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
 };
 // ── Render ────────────────────────────────────────────────────────────────────
 function filterTasks(tasks) {
@@ -51,6 +54,36 @@ function buildItem(task) {
     const li = document.createElement('li');
     li.className = `task-item${task.done ? ' done' : ''}`;
     li.dataset.id = task.id;
+    li.draggable = true;
+    // Drag handle
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.setAttribute('aria-hidden', 'true');
+    // Drag-and-drop events
+    li.addEventListener('dragstart', (e) => {
+        draggedId = task.id;
+        li.classList.add('dragging');
+        if (e.dataTransfer)
+            e.dataTransfer.effectAllowed = 'move';
+    });
+    li.addEventListener('dragend', () => {
+        li.classList.remove('dragging');
+        draggedId = null;
+    });
+    li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer)
+            e.dataTransfer.dropEffect = 'move';
+        li.classList.add('drag-over');
+    });
+    li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
+    li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        li.classList.remove('drag-over');
+        if (draggedId && draggedId !== task.id)
+            moveTask(draggedId, task.id);
+    });
     // Checkbox
     const cb = document.createElement('input');
     cb.type = 'checkbox';
@@ -67,7 +100,7 @@ function buildItem(task) {
     del.textContent = '✕';
     del.setAttribute('aria-label', 'Delete task');
     del.addEventListener('click', () => deleteTask(task.id));
-    li.append(cb, span, del);
+    li.append(handle, cb, span, del);
     return li;
 }
 // ── Inline editing ────────────────────────────────────────────────────────────
@@ -98,12 +131,22 @@ function startEdit(task, li, span) {
 }
 // ── Actions ───────────────────────────────────────────────────────────────────
 async function loadTasks() {
-    const tasks = await api.list();
-    render(tasks);
+    allTasks = await api.list();
+    render(allTasks);
 }
 async function addTask(title) {
     await api.create(title);
     await loadTasks();
+}
+function moveTask(fromId, toId) {
+    const ids = allTasks.map(t => t.id);
+    const fromIdx = ids.indexOf(fromId);
+    const toIdx = ids.indexOf(toId);
+    if (fromIdx === -1 || toIdx === -1)
+        return;
+    ids.splice(fromIdx, 1);
+    ids.splice(toIdx, 0, fromId);
+    api.reorder(ids).then(tasks => { allTasks = tasks; render(allTasks); }).catch(console.error);
 }
 async function toggleDone(id, done) {
     await api.update(id, { done });

@@ -164,6 +164,18 @@ footer.hidden { display: none; }
 }
 #clear-done:hover { color: var(--brand-dark); }
 
+/* ── Drag-and-drop ─────────────────────────────────────────────────────────── */
+.drag-handle {
+  color: var(--muted);
+  font-size: 1rem;
+  flex-shrink: 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.task-item.dragging  { opacity: 0.35; cursor: grabbing; }
+.task-item.drag-over { outline: 2px dashed var(--brand); outline-offset: -2px; }
+
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 .empty {
   text-align: center;

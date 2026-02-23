@@ -3,6 +3,7 @@ interface Task {
   title: string;
   done: boolean;
   createdAt: string;
+  position: number;
 }
 
 type TaskPatch = Partial<Pick<Task, 'title' | 'done'>>;
@@ -15,6 +16,8 @@ const taskFooter = document.getElementById('task-footer') as HTMLElement;
 const clearDone  = document.getElementById('clear-done') as HTMLButtonElement;
 
 let currentFilter: 'all' | 'active' | 'done' = 'all';
+let allTasks: Task[] = [];
+let draggedId: string | null = null;
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -32,10 +35,11 @@ async function apiFetch(url: string, options: RequestInit = {}): Promise<Task[] 
 }
 
 const api = {
-  list:   (): Promise<Task[]>                   => apiFetch('/api/tasks') as Promise<Task[]>,
-  create: (title: string): Promise<Task>        => apiFetch('/api/tasks', { method: 'POST',   body: JSON.stringify({ title }) }) as Promise<Task>,
-  update: (id: string, patch: TaskPatch): Promise<Task> => apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(patch) }) as Promise<Task>,
-  remove: (id: string): Promise<null>           => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }) as Promise<null>,
+  list:    (): Promise<Task[]>                         => apiFetch('/api/tasks') as Promise<Task[]>,
+  create:  (title: string): Promise<Task>              => apiFetch('/api/tasks', { method: 'POST',   body: JSON.stringify({ title }) }) as Promise<Task>,
+  update:  (id: string, patch: TaskPatch): Promise<Task> => apiFetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(patch) }) as Promise<Task>,
+  remove:  (id: string): Promise<null>                 => apiFetch(`/api/tasks/${id}`, { method: 'DELETE' }) as Promise<null>,
+  reorder: (ids: string[]): Promise<Task[]>            => apiFetch('/api/tasks/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }) as Promise<Task[]>,
 };
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -66,6 +70,35 @@ function buildItem(task: Task): HTMLLIElement {
   const li = document.createElement('li');
   li.className = `task-item${task.done ? ' done' : ''}`;
   li.dataset.id = task.id;
+  li.draggable = true;
+
+  // Drag handle
+  const handle = document.createElement('span');
+  handle.className = 'drag-handle';
+  handle.textContent = '⠿';
+  handle.setAttribute('aria-hidden', 'true');
+
+  // Drag-and-drop events
+  li.addEventListener('dragstart', (e: DragEvent) => {
+    draggedId = task.id;
+    li.classList.add('dragging');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  });
+  li.addEventListener('dragend', () => {
+    li.classList.remove('dragging');
+    draggedId = null;
+  });
+  li.addEventListener('dragover', (e: DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    li.classList.add('drag-over');
+  });
+  li.addEventListener('dragleave', () => li.classList.remove('drag-over'));
+  li.addEventListener('drop', (e: DragEvent) => {
+    e.preventDefault();
+    li.classList.remove('drag-over');
+    if (draggedId && draggedId !== task.id) moveTask(draggedId, task.id);
+  });
 
   // Checkbox
   const cb = document.createElement('input');
@@ -86,7 +119,7 @@ function buildItem(task: Task): HTMLLIElement {
   del.setAttribute('aria-label', 'Delete task');
   del.addEventListener('click', () => deleteTask(task.id));
 
-  li.append(cb, span, del);
+  li.append(handle, cb, span, del);
   return li;
 }
 
@@ -118,13 +151,23 @@ function startEdit(task: Task, li: HTMLLIElement, span: HTMLSpanElement): void {
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 async function loadTasks(): Promise<void> {
-  const tasks = await api.list();
-  render(tasks);
+  allTasks = await api.list();
+  render(allTasks);
 }
 
 async function addTask(title: string): Promise<void> {
   await api.create(title);
   await loadTasks();
+}
+
+function moveTask(fromId: string, toId: string): void {
+  const ids = allTasks.map(t => t.id);
+  const fromIdx = ids.indexOf(fromId);
+  const toIdx   = ids.indexOf(toId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  ids.splice(fromIdx, 1);
+  ids.splice(toIdx, 0, fromId);
+  api.reorder(ids).then(tasks => { allTasks = tasks; render(allTasks); }).catch(console.error);
 }
 
 async function toggleDone(id: string, done: boolean): Promise<void> {

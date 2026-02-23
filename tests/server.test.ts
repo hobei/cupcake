@@ -32,6 +32,7 @@ describe('POST /api/tasks', () => {
     expect(res.body.done).toBe(false);
     expect(res.body.id).toBeDefined();
     expect(res.body.createdAt).toBeDefined();
+    expect(res.body.position).toBe(1);
   });
 
   test('returns 400 when title is missing', async () => {
@@ -114,5 +115,27 @@ describe('DELETE /api/tasks/:id', () => {
     const res = await request(app).delete('/api/tasks/does-not-exist');
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('task not found');
+  });
+});
+
+describe('PUT /api/tasks/reorder', () => {
+  test('reorders tasks and returns them in the new order', async () => {
+    const a = (await request(app).post('/api/tasks').send({ title: 'A' })).body as { id: string };
+    const b = (await request(app).post('/api/tasks').send({ title: 'B' })).body as { id: string };
+    const c = (await request(app).post('/api/tasks').send({ title: 'C' })).body as { id: string };
+
+    const res = await request(app)
+      .put('/api/tasks/reorder')
+      .send({ ids: [c.id, a.id, b.id] });
+    expect(res.status).toBe(200);
+    expect(res.body.map((t: { title: string }) => t.title)).toEqual(['C', 'A', 'B']);
+  });
+
+  test('returns 400 when ids is not an array of strings', async () => {
+    const res = await request(app)
+      .put('/api/tasks/reorder')
+      .send({ ids: 'not-an-array' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('ids must be an array of strings');
   });
 });
