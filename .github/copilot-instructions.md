@@ -25,8 +25,11 @@ cupcake/
 ├── run_local.sh       # Run the app locally (npm run dev)
 ├── test.sh            # Run the test suite (npm test)
 ├── clean.sh           # Remove generated artefacts (node_modules)
-├── DESIGN.md          # Architecture and technology decisions
-└── AGENTS.md          # Guidance for AI coding agents
+├── docs/
+│   ├── API.md          # API documentation
+│   ├── FEATURES.md     # Feature documentation
+│   ├── DESIGN.md       # Architecture and technology decisions
+│   └── AGENTS.md       # Guidance for AI coding agents
 ```
 
 ## Development Workflow
@@ -47,6 +50,18 @@ cupcake/
 - Use `textContent` (not `innerHTML`) when inserting user-supplied text to prevent XSS.
 - The server exports `app` via `export = app` and starts listening only when run directly (`require.main === module`). This makes the server testable via supertest without starting a real HTTP listener.
 - **The build must be warning-free.** `bash build.sh` runs TypeScript type-checking and `npm audit --audit-level=high`, exiting non-zero on any failure. Treat every type error or audit finding as a build error that must be resolved before merging.
+
+## Documentation
+
+The docs directory contains detailed information you should be familiar with before contributing code:
+
+The API.md should be your reference for the REST API endpoints and data shapes and be kept up to date as the API evolves.
+
+The FEATURES.md should be your reference for the product features and be kept up to date as features are added or changed.
+
+The DESIGN.md should be your reference for the architecture and technology decisions and be kept up to date as the system evolves.
+
+The AGENTS.md should be your reference for guidance on AI coding agents and be kept up to date as the guidance evolves.
 
 ## Testing
 
